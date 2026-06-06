@@ -1,7 +1,3 @@
--- ============================================================
--- Bookshop DB init script
--- ============================================================
-
 CREATE TABLE IF NOT EXISTS roles (
     id SERIAL PRIMARY KEY,
     name VARCHAR(50) UNIQUE NOT NULL,  -- 'admin', 'user'
@@ -52,9 +48,6 @@ CREATE TABLE IF NOT EXISTS order_items (
     price NUMERIC(10,2) NOT NULL
 );
 
--- ============================================================
--- VIEWS (минимум 3)
--- ============================================================
 
 CREATE OR REPLACE VIEW v_books_with_category AS
 SELECT b.id, b.title, b.author, b.price, b.stock, b.description, b.cover_url,
@@ -76,10 +69,6 @@ CREATE OR REPLACE VIEW v_user_list AS
 SELECT u.id, u.name, u.email, u.age, u.created_at, r.name AS role
 FROM users u
 JOIN roles r ON u.role_id = r.id;
-
--- ============================================================
--- FUNCTIONS (минимум 3)
--- ============================================================
 
 CREATE OR REPLACE FUNCTION get_books_by_category(cat_id INTEGER)
 RETURNS TABLE (id INT, title VARCHAR, author VARCHAR, price NUMERIC, stock INT) AS $$
@@ -113,10 +102,6 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- ============================================================
--- STORED PROCEDURES (минимум 3)
--- ============================================================
-
 CREATE OR REPLACE PROCEDURE create_order(
     p_user_id INTEGER,
     p_book_ids INTEGER[],
@@ -145,7 +130,6 @@ $$;
 CREATE OR REPLACE PROCEDURE cancel_order(p_order_id INTEGER)
 LANGUAGE plpgsql AS $$
 BEGIN
-    -- Вернуть stock
     UPDATE books b
     SET stock = stock + oi.quantity
     FROM order_items oi
@@ -162,11 +146,6 @@ BEGIN
 END;
 $$;
 
--- ============================================================
--- TRIGGERS (минимум 3)
--- ============================================================
-
--- 1. Обновлять total заказа при добавлении позиции
 CREATE OR REPLACE FUNCTION trg_update_order_total()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -179,7 +158,6 @@ CREATE OR REPLACE TRIGGER trg_order_item_insert
 AFTER INSERT OR UPDATE ON order_items
 FOR EACH ROW EXECUTE FUNCTION trg_update_order_total();
 
--- 2. Запретить отрицательный остаток
 CREATE OR REPLACE FUNCTION trg_check_stock()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -218,21 +196,10 @@ CREATE OR REPLACE TRIGGER trg_order_status_change
 AFTER UPDATE ON orders
 FOR EACH ROW EXECUTE FUNCTION trg_log_order_status();
 
--- ============================================================
--- SEED DATA
--- ============================================================
-
 INSERT INTO roles (name, description) VALUES
 ('admin', 'Администратор магазина'),
 ('user', 'Обычный покупатель')
 ON CONFLICT (name) DO NOTHING;
-
--- password: admin123 (bcrypt placeholder — заменяется в runtime)
-INSERT INTO users (name, email, age, password_hash, role_id) VALUES
-('Admin', 'admin@bookshop.com', 30, '$2b$12$placeholder_admin_hash', 1),
-('Иван Иванов', 'ivan@example.com', 25, '$2b$12$placeholder_user_hash', 2),
-('Мария Петрова', 'maria@example.com', 22, '$2b$12$placeholder_user_hash2', 2)
-ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO categories (name, description) VALUES
 ('Программирование', 'Книги по разработке ПО'),
